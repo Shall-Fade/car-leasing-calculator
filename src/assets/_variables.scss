@@ -1,0 +1,28 @@
+// Переменные
+$black: #111111;
+$white: #ffffff;
+$orange: #ff9514;
+$dark-grey: #575757;
+$medium-grey: #ebebec;
+$light-grey: #f3f3f4;
+
+// Контрольные точки
+@mixin breakpoint($point) {
+  @if $point == xxl {
+    @media (max-width: 1440px) {
+      @content;
+    }
+  } @else if $point == xl {
+    @media (max-width: 1024px) {
+      @content;
+    }
+  } @else if $point == md {
+    @media (max-width: 768px) {
+      @content;
+    }
+  } @else if $point == sm {
+    @media (max-width: 320px) {
+      @content;
+    }
+  }
+}
