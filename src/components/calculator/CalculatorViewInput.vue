@@ -3,89 +3,170 @@
     <h1 class="calculator__title">Рассчитайте стоимость автомобиля в лизинг</h1>
     <div class="calculator-container">
       <!-- Стоимость автомобиля -->
-      <div class="calculator-block" :class="{'calculator-block--disabled': isDisabled}">
+      <div
+        class="calculator-block"
+        :class="{ 'calculator-block--disabled': isDisabled }"
+      >
         <h5 class="calculator-block__title">Стоимость автомобиля</h5>
         <div class="calculator-block__group">
           <input
             class="calculator-block__input"
             :class="{ 'calculator-block__input--disable': isDisabled }"
-            v-model="carCost"
+            v-model="state.carCost"
             type="text"
             :disabled="isDisabled"
+            @blur="v$.carCost.$touch()"
           />
           <input
             class="calculator-block__range"
             min="1000000"
             max="6000000"
-            v-model="carCost"
+            v-model="state.carCost"
             type="range"
+            :disabled="isDisabled"
           />
           <span class="calculator-block__span currency">₽</span>
         </div>
+        <base-error v-if="v$.carCost.$error">
+          <template v-slot:error>{{ v$.carCost.$errors[0].$message }}</template>
+        </base-error>
       </div>
       <!-- Первоначальный взнос -->
-      <div class="calculator-block" :class="{'calculator-block--disabled': isDisabled}">
+      <div
+        class="calculator-block"
+        :class="{ 'calculator-block--disabled': isDisabled }"
+      >
         <h5 class="calculator-block__title">Первоначальный взнос</h5>
         <div class="calculator-block__group">
           <input
             class="calculator-block__input"
-            v-model="initialPayment"
+            v-model="state.initialPayment"
             type="text"
             disabled
+            @blur="v$.initialPayment.$touch()"
           />
           <input
             class="calculator-block__range"
             min="10"
             max="60"
-            v-model="initialPaymentPercent"
+            v-model="state.initialPaymentPercent"
             type="range"
             :disabled="isDisabled"
           />
           <span class="calculator-block__span calculator-block__span--percent">
-            <p>{{ initialPaymentPercent }}%</p>
+            <p>{{ state.initialPaymentPercent }}%</p>
           </span>
         </div>
+        <base-error v-if="v$.initialPaymentPercent.$error">
+          <template v-slot:error>{{
+            v$.initialPaymentPercent.$errors[0].$message
+          }}</template>
+        </base-error>
       </div>
       <!-- Срок лизинга -->
-      <div class="calculator-block" :class="{'calculator-block--disabled': isDisabled}">
+      <div
+        class="calculator-block"
+        :class="{ 'calculator-block--disabled': isDisabled }"
+      >
         <h5 class="calculator-block__title">Срок лизинга</h5>
         <div class="calculator-block__group">
           <input
             class="calculator-block__input"
-            v-model="leaseTerm"
+            v-model="state.leaseTerm"
             type="text"
             :disabled="isDisabled"
+            @blur="v$.leaseTerm.$touch()"
           />
           <input
             class="calculator-block__range"
             min="1"
             max="60"
-            v-model="leaseTerm"
+            v-model="state.leaseTerm"
             type="range"
             :disabled="isDisabled"
           />
           <span class="calculator-block__span currency">мес.</span>
         </div>
+        <base-error v-if="v$.leaseTerm.$error">
+          <template v-slot:error>{{
+            v$.leaseTerm.$errors[0].$message
+          }}</template>
+        </base-error>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from "vue";
+import { computed, onMounted, watch, reactive } from "vue";
 import { useStore } from "vuex";
+import { useVuelidate } from "@vuelidate/core";
+import {
+  required,
+  numeric,
+  minValue,
+  maxValue,
+  helpers,
+} from "@vuelidate/validators";
 export default {
   setup() {
     // Переменные
     const store = useStore();
     const isDisabled = computed(() => store.state.isDisabled);
-    const interestRate = ref(0.035);
-    const monthlyPayment = ref(0);
-    const carCost = ref(3300000);
-    const initialPayment = ref(0);
-    const initialPaymentPercent = ref(13);
-    const leaseTerm = ref(60);
-    const leaseSum = ref(0);
+
+    const state = reactive({
+      carCost: 3300000,
+      initialPaymentPercent: 13,
+      leaseTerm: 60,
+      leaseSum: 0,
+      initialPayment: 0,
+      monthlyPayment: 0,
+      interestRate: 0.035,
+    });
+
+    // Правила валидации
+    const rules = computed(() => {
+      return {
+        carCost: {
+          required: helpers.withMessage("Обязательное поле", required),
+          numeric: helpers.withMessage("Только цифры", numeric),
+          minValueValue: helpers.withMessage(
+            "Минимальная сумма: 1 000 000",
+            minValue(1000000)
+          ),
+          maxValueValue: helpers.withMessage(
+            "Максимальная сумма: 6 000 000",
+            maxValue(6000000)
+          ),
+        },
+        initialPaymentPercent: {
+          required: helpers.withMessage("Обязательное поле", required),
+          numeric: helpers.withMessage("Только цифры", numeric),
+          minValueValue: helpers.withMessage(
+            "Минимальный процент: 10%",
+            minValue(10)
+          ),
+          maxValueValue: helpers.withMessage(
+            "Максимальный процент: 60%",
+            maxValue(60)
+          ),
+        },
+        leaseTerm: {
+          required: helpers.withMessage("Обязательное поле", required),
+          numeric: helpers.withMessage("Только цифры", numeric),
+          minValueValue: helpers.withMessage(
+            "Минимальное количество месяцев: 1",
+            minValue(1)
+          ),
+          maxValueValue: helpers.withMessage(
+            "Максимальное количество месяцев: 60",
+            maxValue(60)
+          ),
+        },
+      };
+    });
+
+    const v$ = useVuelidate(rules, state);
 
     onMounted(() => {
       costCalculation();
@@ -93,21 +174,21 @@ export default {
 
     // Наблюдатели
     watch(
-      () => carCost.value,
+      () => state.carCost,
       () => {
         costCalculation();
       }
     );
 
     watch(
-      () => initialPaymentPercent.value,
+      () => state.initialPaymentPercent,
       () => {
         costCalculation();
       }
     );
 
     watch(
-      () => leaseTerm.value,
+      () => state.leaseTerm,
       () => {
         costCalculation();
       }
@@ -116,31 +197,30 @@ export default {
     // Расчет стоимости
     function costCalculation() {
       // Первоначальный взнос
-      initialPayment.value = Math.round(
-        (initialPaymentPercent.value / 100) * carCost.value
+      state.initialPayment = Math.round(
+        (state.initialPaymentPercent / 100) * state.carCost
       );
       // Ежемесячный платеж
-      monthlyPayment.value = Math.round(
-        (carCost.value - initialPayment.value) *
-          ((interestRate.value *
-            Math.pow(1 + interestRate.value, leaseTerm.value)) /
-            (Math.pow(1 + interestRate.value, leaseTerm.value) - 1))
+      state.monthlyPayment = Math.round(
+        (state.carCost - state.initialPayment) *
+          ((state.interestRate *
+            Math.pow(1 + state.interestRate, state.leaseTerm)) /
+            (Math.pow(1 + state.interestRate, state.leaseTerm) - 1))
       );
       // Сумма договора лизинга
-      leaseSum.value = Math.round(
-        initialPayment.value + leaseTerm.value * monthlyPayment.value
+      state.leaseSum = Math.round(
+        state.initialPayment + state.leaseTerm * state.monthlyPayment
       );
 
       // Отправка данных в хранилище
-      store.commit("UPDATE_LEASE_SUM", leaseSum.value);
-      store.commit("UPDATE_MONTHLY_PAYMENT", monthlyPayment.value);
+      store.commit("UPDATE_LEASE_SUM", state.leaseSum);
+      store.commit("UPDATE_MONTHLY_PAYMENT", state.monthlyPayment);
+      store.commit("SEND_VALIDATOR", v$);
     }
 
     return {
-      carCost,
-      initialPayment,
-      initialPaymentPercent,
-      leaseTerm,
+      v$,
+      state,
       isDisabled,
     };
   },

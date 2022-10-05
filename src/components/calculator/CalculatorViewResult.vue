@@ -38,6 +38,8 @@ export default {
     const isDisabled = ref(false);
     const leaseSum = computed(() => store.state.leaseSum);
     const monthlyPayment = computed(() => store.state.monthlyPayment);
+    const v$ = computed(() => store.state.v$);
+
     // Исправленные числа (добавлены пробелы между тысячными)
     const fixedLeaseSum = ref();
     const fixedMonthlyPayment = ref();
@@ -69,31 +71,39 @@ export default {
 
     // Отправка запроса на сервер
     function sendRequest() {
-      // Отключение инпутов и кнопки
-      isDisabled.value = true;
-      store.commit("TOGGLE_BUTTON", isDisabled);
+      v$.value.$validate();
 
-      setTimeout(() => {
-        var xhr = new XMLHttpRequest();
+      if (!v$.value.$error) {
+        setTimeout(() => {
+          var xhr = new XMLHttpRequest();
 
-        xhr.open("POST", "https://hookb.in/eK160jgYJ6UlaRPldJ1P", false);
+          xhr.open("POST", "https://hookb.in/eK160jgYJ6UlaRPldJ1P", false);
 
-        xhr.send([
-          {
-            total_sum: leaseSum.value,
-            monthly_payment_from: monthlyPayment.value,
-          },
-        ]);
+          xhr.send([
+            {
+              total_sum: leaseSum.value,
+              monthly_payment_from: monthlyPayment.value,
+            },
+          ]);
 
-        if (xhr.status != 200) {
-          alert(xhr.status + ": " + xhr.statusText);
-        } else {
-          alert(xhr.responseText);
-
-          isDisabled.value = false;
+          // Отключение инпутов и кнопки
+          isDisabled.value = true;
           store.commit("TOGGLE_BUTTON", isDisabled);
-        }
-      }, 2000);
+
+          // Проверка статуса запроса
+          if (xhr.status != 200) {
+            alert(xhr.status + ": " + xhr.statusText);
+          } else {
+            alert(xhr.responseText);
+
+            isDisabled.value = false;
+            store.commit("TOGGLE_BUTTON", isDisabled);
+          }
+        }, 2000);
+      } else {
+        alert("Form is not valid!");
+        return;
+      }
     }
 
     return {

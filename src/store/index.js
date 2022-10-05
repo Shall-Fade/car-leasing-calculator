@@ -5,6 +5,7 @@ const store = createStore({
     leaseSum: null,
     monthlyPayment: null,
     isDisabled: false,
+    v$: null,
   },
   mutations: {
     UPDATE_LEASE_SUM(state, leaseSum) {
@@ -15,6 +16,9 @@ const store = createStore({
     },
     TOGGLE_BUTTON(state, isDisabled) {
       state.isDisabled = isDisabled;
+    },
+    SEND_VALIDATOR(state, v$) {
+      state.v$ = v$;
     },
   },
 });
