@@ -74,22 +74,21 @@ export default {
       v$.value.$validate();
 
       if (!v$.value.$error) {
+        var xhr = new XMLHttpRequest();
+
+        xhr.open("POST", "https://hookb.in/eK160jgYJ6UlaRPldJ1P", false);
+
+        xhr.send([
+          {
+            total_sum: leaseSum.value,
+            monthly_payment_from: monthlyPayment.value,
+          },
+        ]);
+
+        // Отключение инпутов и кнопки
+        isDisabled.value = true;
+        store.commit("TOGGLE_BUTTON", isDisabled);
         setTimeout(() => {
-          var xhr = new XMLHttpRequest();
-
-          xhr.open("POST", "https://hookb.in/eK160jgYJ6UlaRPldJ1P", false);
-
-          xhr.send([
-            {
-              total_sum: leaseSum.value,
-              monthly_payment_from: monthlyPayment.value,
-            },
-          ]);
-
-          // Отключение инпутов и кнопки
-          isDisabled.value = true;
-          store.commit("TOGGLE_BUTTON", isDisabled);
-
           // Проверка статуса запроса
           if (xhr.status != 200) {
             alert(xhr.status + ": " + xhr.statusText);
